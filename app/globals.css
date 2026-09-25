@@ -155,16 +155,86 @@ button:hover {
 }
 
 .message {
-  white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 
 .message-user {
+  white-space: pre-wrap;
   align-self: flex-end;
   max-width: 85%;
   padding: 0.5rem 0.875rem;
   border-radius: var(--radius) var(--radius) 0.25rem var(--radius);
   background: var(--bubble);
+}
+
+.markdown > * + * {
+  margin-top: 0.75em;
+}
+
+.markdown :is(h1, h2, h3, h4) {
+  font-size: 1.05em;
+  font-weight: 600;
+}
+
+.markdown :is(ul, ol) {
+  padding-left: 1.4em;
+}
+
+.markdown ul {
+  list-style: disc;
+}
+
+.markdown ol {
+  list-style: decimal;
+}
+
+.markdown li + li {
+  margin-top: 0.25em;
+}
+
+.markdown a {
+  color: var(--accent);
+}
+
+.markdown code {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 0.9em;
+  font-variant-ligatures: none;
+  padding: 0.1em 0.35em;
+  border-radius: 0.3em;
+  background: var(--bubble);
+}
+
+.markdown pre {
+  overflow-x: auto;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.markdown pre code {
+  padding: 0;
+  background: none;
+  overflow-wrap: normal;
+}
+
+.markdown blockquote {
+  padding-left: 0.75rem;
+  border-left: 3px solid var(--border);
+  color: var(--muted);
+}
+
+.markdown table {
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+
+.markdown :is(th, td) {
+  padding: 0.375rem 0.625rem;
+  border: 1px solid var(--border);
+  text-align: left;
 }
 
 .message-note {
