@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { streamReply, type Message } from "@/lib/chat";
 
+const MAX_INPUT_LENGTH = 8_000;
+
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -34,19 +36,23 @@ export default function Home() {
     inputRef.current?.focus();
   }
 
-  async function send() {
+  function send() {
     const text = input.trim();
     if (!text || isStreaming) return;
+    setInput("");
+    run([...messages, { id: crypto.randomUUID(), role: "user", content: text }]);
+  }
 
-    const history: Message[] = [
-      ...messages,
-      { id: crypto.randomUUID(), role: "user", content: text },
-    ];
+  function retry() {
+    inputRef.current?.focus();
+    run(messages.at(-1)?.failed ? messages.slice(0, -1) : messages);
+  }
+
+  async function run(history: Message[]) {
     const replyId = crypto.randomUUID();
     const controller = new AbortController();
     abortRef.current = controller;
     setMessages([...history, { id: replyId, role: "assistant", content: "" }]);
-    setInput("");
     setError(null);
     setIsStreaming(true);
 
@@ -59,11 +65,13 @@ export default function Home() {
         );
       }
     } catch (e) {
-      if (controller.signal.aborted) {
-        setMessages((prev) =>
-          prev.map((m) => (m.id === replyId ? { ...m, stopped: true } : m)),
-        );
-      } else {
+      const stopped = controller.signal.aborted;
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === replyId ? { ...m, stopped, failed: !stopped } : m,
+        ),
+      );
+      if (!stopped) {
         setError(e instanceof Error ? e.message : "Что-то пошло не так");
       }
     } finally {
@@ -105,6 +113,9 @@ export default function Home() {
                 {m.stopped && (
                   <small className="message-note">Ответ остановлен</small>
                 )}
+                {m.failed && (
+                  <small className="message-note">Ответ прервался из-за ошибки</small>
+                )}
               </li>
             ))}
         </ol>
@@ -116,9 +127,12 @@ export default function Home() {
         </p>
       )}
       {error && (
-        <p role="alert" className="error">
-          {error}
-        </p>
+        <div role="alert" className="error">
+          <p>{error}</p>
+          <button type="button" onClick={retry}>
+            Повторить
+          </button>
+        </div>
       )}
 
       <form
@@ -135,6 +149,7 @@ export default function Home() {
           ref={inputRef}
           id="prompt"
           rows={2}
+          maxLength={MAX_INPUT_LENGTH}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}

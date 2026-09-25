@@ -48,3 +48,8 @@ test("throws on a mid-stream error event", async () => {
   const raw = event("частично") + `data: {"error":{"message":"Rate limit"}}\n\n`;
   await assert.rejects(collect(streamOf(raw)), /Rate limit/);
 });
+
+test("maps a mid-stream 429 to a rate-limit error", async () => {
+  const raw = `data: {"error":{"code":429,"message":"Provider returned error"}}\n\n`;
+  await assert.rejects(collect(streamOf(raw)), { kind: "rate-limit" });
+});
