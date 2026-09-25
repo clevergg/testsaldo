@@ -1,6 +1,11 @@
 export type Role = "user" | "assistant";
 
-export type Message = { id: string; role: Role; content: string };
+export type Message = {
+  id: string;
+  role: Role;
+  content: string;
+  stopped?: boolean;
+};
 
 export async function* readDeltas(
   body: ReadableStream<Uint8Array>,
@@ -34,6 +39,7 @@ export async function* readDeltas(
 
 export async function* streamReply(
   messages: Message[],
+  signal: AbortSignal,
 ): AsyncGenerator<string> {
   const res = await fetch("/api/chat", {
     method: "POST",
@@ -41,6 +47,7 @@ export async function* streamReply(
     body: JSON.stringify({
       messages: messages.map(({ role, content }) => ({ role, content })),
     }),
+    signal,
   });
   if (!res.ok || !res.body) {
     const details = await res.json().catch(() => null);

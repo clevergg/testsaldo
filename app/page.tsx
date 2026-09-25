@@ -9,10 +9,30 @@ export default function Home() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const logRef = useRef<HTMLElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight });
   }, [messages]);
+
+  useEffect(() => {
+    if (!isStreaming) return;
+    const onKeyDown = (e: globalThis.KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      abortRef.current?.abort();
+      inputRef.current?.focus();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isStreaming]);
+
+  useEffect(() => () => abortRef.current?.abort(), []);
+
+  function stop() {
+    abortRef.current?.abort();
+    inputRef.current?.focus();
+  }
 
   async function send() {
     const text = input.trim();
@@ -23,13 +43,15 @@ export default function Home() {
       { id: crypto.randomUUID(), role: "user", content: text },
     ];
     const replyId = crypto.randomUUID();
+    const controller = new AbortController();
+    abortRef.current = controller;
     setMessages([...history, { id: replyId, role: "assistant", content: "" }]);
     setInput("");
     setError(null);
     setIsStreaming(true);
 
     try {
-      for await (const delta of streamReply(history)) {
+      for await (const delta of streamReply(history, controller.signal)) {
         setMessages((prev) =>
           prev.map((m) =>
             m.id === replyId ? { ...m, content: m.content + delta } : m,
@@ -37,9 +59,16 @@ export default function Home() {
         );
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Что-то пошло не так");
+      if (controller.signal.aborted) {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === replyId ? { ...m, stopped: true } : m)),
+        );
+      } else {
+        setError(e instanceof Error ? e.message : "Что-то пошло не так");
+      }
     } finally {
       setMessages((prev) => prev.filter((m) => m.id !== replyId || m.content));
+      abortRef.current = null;
       setIsStreaming(false);
     }
   }
@@ -73,6 +102,9 @@ export default function Home() {
                   {m.role === "user" ? "Вы: " : "Модель: "}
                 </span>
                 {m.content}
+                {m.stopped && (
+                  <small className="message-note">Ответ остановлен</small>
+                )}
               </li>
             ))}
         </ol>
@@ -100,6 +132,7 @@ export default function Home() {
           Сообщение
         </label>
         <textarea
+          ref={inputRef}
           id="prompt"
           rows={2}
           value={input}
@@ -107,8 +140,12 @@ export default function Home() {
           onKeyDown={handleKeyDown}
           placeholder="Спросите что-нибудь"
         />
-        <button type="submit" disabled={isStreaming || !input.trim()}>
-          Отправить
+        <button
+          type={isStreaming ? "button" : "submit"}
+          onClick={isStreaming ? stop : undefined}
+          aria-keyshortcuts={isStreaming ? "Escape" : undefined}
+        >
+          {isStreaming ? "Стоп" : "Отправить"}
         </button>
       </form>
     </main>
