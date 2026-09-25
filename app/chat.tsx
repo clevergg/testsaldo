@@ -6,6 +6,12 @@ import { loadHistory, saveHistory } from "@/lib/history";
 
 const MAX_INPUT_LENGTH = 8_000;
 
+const SUGGESTIONS = [
+  "Объясни, что такое замыкание в JavaScript",
+  "Придумай пять названий для кофейни у моря",
+  "Составь план тренировок на неделю для новичка",
+];
+
 export default function Chat() {
   const [messages, setMessages] = useState<Message[]>(loadHistory);
   const [input, setInput] = useState("");
@@ -53,11 +59,12 @@ export default function Chat() {
     inputRef.current?.focus();
   }
 
-  function send() {
-    const text = input.trim();
-    if (!text || isStreaming) return;
+  function send(text = input) {
+    const content = text.trim();
+    if (!content || isStreaming) return;
     setInput("");
-    run([...messages, { id: crypto.randomUUID(), role: "user", content: text }]);
+    inputRef.current?.focus();
+    run([...messages, { id: crypto.randomUUID(), role: "user", content }]);
   }
 
   function retry() {
@@ -123,6 +130,25 @@ export default function Chat() {
         aria-live="polite"
         aria-busy={isStreaming}
       >
+        {messages.length === 0 && (
+          <div className="empty">
+            <h2>С чего начнём?</h2>
+            <p>
+              Задайте вопрос или выберите пример. <kbd>Enter</kbd> отправляет,{" "}
+              <kbd>Shift</kbd>+<kbd>Enter</kbd> переносит строку, <kbd>Esc</kbd>{" "}
+              останавливает ответ.
+            </p>
+            <ul className="suggestions">
+              {SUGGESTIONS.map((s) => (
+                <li key={s}>
+                  <button type="button" onClick={() => send(s)}>
+                    {s}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <ol className="messages">
           {messages
             .filter((m) => m.content)
@@ -145,7 +171,12 @@ export default function Chat() {
 
       {isStreaming && (
         <p role="status" className="typing">
-          Модель печатает...
+          <span className="typing-dots" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </span>
+          Модель печатает
         </p>
       )}
       {error && (
@@ -170,7 +201,7 @@ export default function Chat() {
         <textarea
           ref={inputRef}
           id="prompt"
-          rows={2}
+          rows={1}
           maxLength={MAX_INPUT_LENGTH}
           value={input}
           onChange={(e) => setInput(e.target.value)}
