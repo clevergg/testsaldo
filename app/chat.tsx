@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { streamReply, type Message } from "@/lib/chat";
 import { loadHistory, saveHistory } from "@/lib/history";
+import { MessageItem } from "./message";
 
 const MAX_INPUT_LENGTH = 8_000;
 
@@ -153,18 +154,7 @@ export default function Chat() {
           {messages
             .filter((m) => m.content)
             .map((m) => (
-              <li key={m.id} className={`message message-${m.role}`}>
-                <span className="visually-hidden">
-                  {m.role === "user" ? "Вы: " : "Модель: "}
-                </span>
-                {m.content}
-                {m.stopped && (
-                  <small className="message-note">Ответ остановлен</small>
-                )}
-                {m.failed && (
-                  <small className="message-note">Ответ прервался из-за ошибки</small>
-                )}
-              </li>
+              <MessageItem key={m.id} message={m} />
             ))}
         </ol>
       </section>
