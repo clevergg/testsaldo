@@ -1,7 +1,7 @@
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const HEADERS_TIMEOUT_MS = 30_000;
 const MAX_MESSAGES = 50;
-const MAX_CONTENT_LENGTH = 8_000;
+const MAX_CONTENT_LENGTH = 32_000;
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
